@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Gestão de Crise Urbana</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap');
+
+        body { font-family: 'Roboto', sans-serif; background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%); color: #f5f6fa; text-align: center; margin: 0; padding: 20px; min-height: 100vh; }
+        h1 { font-family: 'Orbitron', sans-serif; color: #00a8ff; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 2px; }
+        
+        #game-screen { display: none; }
+        #start-screen { margin-top: 10vh; background: rgba(0, 0, 0, 0.4); padding: 50px; border-radius: 15px; display: inline-block; border: 2px solid #00a8ff; box-shadow: 0 0 30px rgba(0, 168, 255, 0.3); }
+        #start-screen input { padding: 15px; font-size: 20px; border-radius: 8px; border: none; margin-bottom: 20px; width: 80%; text-align: center; font-family: 'Roboto', sans-serif; }
+
+        /* Modais */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 100; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; box-sizing: border-box;}
+        .modal-content { background: #e84118; padding: 40px; border-radius: 15px; box-shadow: 0 0 40px rgba(232, 65, 24, 0.8); max-width: 700px; width: 100%; }
+        .modal-content.feedback { background: #2c3e50; border: 2px solid #00a8ff; box-shadow: 0 0 40px rgba(0, 168, 255, 0.5); }
+        .modal-content.reeleicao { background: #fbc531; box-shadow: 0 0 40px rgba(251, 197, 49, 0.8); color: #2f3640; }
+        .modal-content h2 { font-family: 'Orbitron', sans-serif; font-size: 32px; margin-top: 0; }
+        .modal-content p { font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+        
+        #pergunta-crise { font-size: 18px; font-weight: normal; color: #f5f6fa; margin-bottom: 15px; text-align: left; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;}
+        #resposta-crise { width: 100%; padding: 15px; border-radius: 8px; border: 2px solid #2f3640; background: rgba(0,0,0,0.3); color: white; font-family: 'Roboto', sans-serif; font-size: 16px; box-sizing: border-box; resize: vertical; margin-bottom: 10px;}
+        #resposta-crise:focus { outline: none; border-color: #fbc531; background: rgba(0,0,0,0.6); }
+
+        .hud { display: flex; justify-content: center; flex-wrap: wrap; gap: 30px; background: rgba(0, 0, 0, 0.4); padding: 20px; border-radius: 10px; max-width: 900px; margin: 0 auto 20px auto; border: 1px solid #353b48; }
+        .stat { font-size: 20px; font-weight: bold; }
+        .stat span { color: #fbc531; font-family: 'Orbitron', sans-serif; font-size: 24px; }
+        #approval-bar { width: 150px; height: 15px; background: #c23616; display: inline-block; margin-left: 10px; border-radius: 8px; overflow: hidden; vertical-align: middle; }
+        #approval-fill { height: 100%; width: 50%; background: #4cd137; transition: width 0.3s ease, background 0.3s ease; }
+
+        #fase-info { font-size: 22px; color: #00a8ff; font-weight: bold; margin-bottom: 20px; text-transform: uppercase;}
+        .game-board { display: flex; justify-content: center; gap: 20px; margin: 30px 0; flex-wrap: wrap; }
+        .slot-container { display: flex; flex-direction: column; align-items: center; }
+        .slot-container h3 { color: #dcdde1; font-size: 16px; text-transform: uppercase; margin-bottom: 10px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 5px; }
+        
+        .drop-zone { width: 240px; height: 150px; background-color: rgba(255, 255, 255, 0.05); border: 3px dashed #7f8fa6; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; padding: 15px; box-sizing: border-box; text-align: center; font-size: 16px; color: #718093; font-weight: bold; }
+        .drop-zone.over { background-color: rgba(0, 168, 255, 0.2); border-color: #00a8ff; transform: scale(1.05); }
+        .drop-zone.success { border-color: #4cd137; box-shadow: 0 0 20px rgba(76, 209, 55, 0.4); background-color: rgba(76, 209, 55, 0.1); color: white;}
+        
+        .card-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; padding: 25px; background: rgba(0, 0, 0, 0.2); border-radius: 15px; border: 1px solid #353b48; }
+        .card { background: linear-gradient(135deg, #273c75 0%, #192a56 100%); color: white; padding: 15px; border-radius: 10px; cursor: grab; width: 220px; font-size: 16px; font-weight: bold; box-shadow: 0 6px 15px rgba(0,0,0,0.4); user-select: none; display: flex; align-items: center; justify-content: center; text-align: center; border: 2px solid #40739e; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 168, 255, 0.3); border-color: #00a8ff; }
+
+        .btn { background: linear-gradient(135deg, #0097e6 0%, #00a8ff 100%); color: white; border: none; padding: 15px 30px; font-family: 'Orbitron', sans-serif; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; }
+        .btn:hover { transform: scale(1.05); }
+        .btn-dark { background: #2f3640; color: white; border: 2px solid white; width: 100%; margin-top: 10px;}
+        
+        .btn-container { margin-top: 30px; display: flex; justify-content: center; gap: 20px; height: 60px; }
+        #btn-next { background: linear-gradient(135deg, #e1b12c 0%, #fbc531 100%); display: none; color: #2f3640;}
+        #message { margin-top: 25px; font-size: 24px; font-weight: bold; min-height: 40px; text-transform: uppercase; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-10px); } 50% { transform: translateX(10px); } }
+        .shake { animation: shake 0.4s ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1 style="font-size: 40px; margin-bottom: 20px;">🏛️ Gestão Urbana</h1>
+        <p style="font-size: 22px; margin-bottom: 30px;">O simulador oficial de Gestão de Crises.</p>
+        <input type="text" id="player-name" placeholder="Nome do(a) Prefeito(a) ou Equipe" autocomplete="off">
+        <br><button class="btn" onclick="startGame()">Assumir o Cargo</button>
+    </div>
+
+    <div class="modal-overlay" id="modal-crise">
+        <div class="modal-content" id="crise-container">
+            <h2>🚨 CRISE INESPERADA!</h2>
+            <p id="texto-crise"></p>
+            <div id="pergunta-crise"></div>
+            <textarea id="resposta-crise" rows="4" placeholder="Redija o seu Decreto contendo conceitos geográficos e soluções técnicas..."></textarea>
+            <div id="erro-crise" style="color: #fbc531; font-size: 16px; display: none; text-align: left; margin-bottom: 15px;">⚠️ Seu decreto está muito vazio. Explique a solução detalhadamente!</div>
+            <button class="btn btn-dark" onclick="avaliarDecreto()">Publicar Decreto Oficial</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-feedback">
+        <div class="modal-content feedback">
+            <h2>📊 AVALIAÇÃO DO DECRETO</h2>
+            <p id="texto-feedback"></p>
+            <div id="status-feedback" style="font-size: 18px; color: #dcdde1; margin-bottom: 20px;"></div>
+            <button class="btn btn-dark" onclick="fecharModalFeedback()">Voltar ao Planejamento</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-reeleicao">
+        <div class="modal-content reeleicao">
+            <h2>🎉 REELEIÇÃO GARANTIDA!</h2>
+            <p>100% de Aprovação! O povo ama sua gestão.</p>
+            <p>Bônus de +1000 Pontos!</p>
+            <button class="btn btn-dark" onclick="fecharModal('modal-reeleicao')">Iniciar Segundo Mandato</button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <h1>Gestão de Crise Urbana</h1>
+        <div class="hud">
+            <div class="stat">Aprovação: <div id="approval-bar"><div id="approval-fill"></div></div> <span id="approval-text">50%</span></div>
+            <div class="stat">Pontos: <span id="score-display">0</span></div>
+            <div class="stat">Combo: <span id="combo-display">x1</span></div>
+        </div>
+        <div id="fase-info">Preparando Mesa...</div>
+
+        <div class="game-board" id="game-board">
+            <div class="slot-container"><h3>1. Causa</h3><div class="drop-zone" id="zone-causa" data-type="causa">Arraste a Causa</div></div>
+            <div class="slot-container"><h3>2. Problema</h3><div class="drop-zone" id="zone-problema" data-type="problema">Arraste o Problema</div></div>
+            <div class="slot-container"><h3>3. Consequência</h3><div class="drop-zone" id="zone-consequencia" data-type="consequencia">Arraste a Consequência</div></div>
+            <div class="slot-container"><h3>4. Solução</h3><div class="drop-zone" id="zone-solucao" data-type="solucao">Arraste a Solução</div></div>
+        </div>
+
+        <div class="btn-container">
+            <button class="btn" onclick="checkAnswers()" id="btn-check">Executar Planejamento</button>
+            <button class="btn" id="btn-next" onclick="processarProximaFase()">Próxima Crise ➡️</button>
+        </div>
+        
+        <div id="message"></div>
+        <div class="card-bank" id="card-bank"></div>
+    </div>
+
+    <script>
+        // BANCO DE DADOS COMPLETO (80 Cenários)
+        const cenarios = [
+            // Eixo 1: Mobilidade
+            { tema: "Mobilidade", causa: "Modelo focado no transporte individual (carros)", problema: "Congestionamentos crônicos", consequencia: "Perda de tempo, estresse e aumento da poluição do ar", solucao: "Priorização do transporte coletivo e de massa" },
+            { tema: "Mobilidade", causa: "Falta de investimentos e má gestão", problema: "Transporte público ineficiente", consequencia: "Superlotação, atrasos e indignação da população", solucao: "Ampliação da frota e integração de modais (ônibus/metrô)" },
+            { tema: "Mobilidade", causa: "Desenho urbano focado apenas em veículos motorizados", problema: "Mobilidade ativa precária (falta de ciclovias)", consequencia: "Insegurança para ciclistas e desestímulo ao uso da bicicleta", solucao: "Construção de malha cicloviária interligada e segura" },
+            { tema: "Mobilidade", causa: "Falta de padronização e manutenção pelos proprietários", problema: "Calçadas esburacadas e inacessíveis", consequencia: "Quedas de pedestres e barreira para cadeirantes/idosos", solucao: "Padronização municipal e reforma das calçadas" },
+            { tema: "Mobilidade", causa: "Imprudência, excesso de velocidade e vias mal sinalizadas", problema: "Alta incidência de acidentes de trânsito", consequencia: "Sobrecarga do sistema de saúde e perda de vidas", solucao: "Fiscalização eletrônica, lombadas e educação no trânsito" },
+            { tema: "Mobilidade", causa: "Monopólio de empresas e falta de subsídios públicos", problema: "Tarifas de transporte público muito caras", consequencia: "Exclusão de pessoas de baixa renda do acesso à cidade", solucao: "Subsídios governamentais e estudo de Tarifa Zero" },
+            { tema: "Mobilidade", causa: "Semáforos antigos sem inteligência artificial", problema: "Falta de sincronia semafórica", consequencia: "Gargalos no trânsito mesmo fora dos horários de pico", solucao: "Instalação de semáforos inteligentes (onda verde)" },
+            { tema: "Mobilidade", causa: "Frota de ônibus movida a combustíveis fósseis", problema: "Transporte público altamente poluente", consequencia: "Emissão de fuligem e doenças respiratórias crônicas", solucao: "Transição para ônibus elétricos ou a biocombustíveis" },
+            { tema: "Mobilidade", causa: "Crescimento de entregas e trabalho precarizado", problema: "Aumento de acidentes com motociclistas", consequencia: "Aumento de traumas ortopédicos nos hospitais públicos", solucao: "Regulamentação dos apps e faixas exclusivas para motos" },
+            { tema: "Mobilidade", causa: "Espraiamento urbano (cidade que cresce para os lados)", problema: "Isolamento de bairros periféricos", consequencia: "Moradores gastam horas diárias apenas em deslocamento", solucao: "Cidades de 15 minutos (comércio e emprego nos bairros)" },
+            { tema: "Mobilidade", causa: "Falta de terminais e planejamento de rotas", problema: "Desintegração entre ônibus metropolitanos e municipais", consequencia: "Pagamento de múltiplas tarifas na mesma viagem", solucao: "Bilhete único metropolitano integrado" },
+            { tema: "Mobilidade", causa: "Falta de espaço seguro para deixar bicicletas", problema: "Ausência de bicicletários públicos", consequencia: "Roubos de bicicletas e desestímulo à integração com ônibus", solucao: "Bicicletários seguros em terminais e estações" },
+            { tema: "Mobilidade", causa: "Falta de abrigos adequados e iluminação", problema: "Insegurança nos pontos de ônibus", consequencia: "Vulnerabilidade a assaltos, principalmente à noite", solucao: "Pontos bem iluminados, com cobertura e botão do pânico" },
+            { tema: "Mobilidade", causa: "Uso de asfalto de baixa qualidade e excesso de peso", problema: "Vias urbanas esburacadas", consequencia: "Danos aos veículos e risco de acidentes", solucao: "Uso de asfalto emborrachado e manutenção preventiva" },
+            { tema: "Mobilidade", causa: "Carros parados em faixas de rolamento", problema: "Estacionamento irregular em vias movimentadas", consequencia: "Redução do fluxo e aumento de congestionamentos", solucao: "Fiscalização rigorosa e remoção por guincho" },
+            { tema: "Mobilidade", causa: "Falta de fiscalização e cultura de desrespeito", problema: "Desrespeito à faixa de pedestres", consequencia: "Atropelamentos e intimidação de quem anda a pé", solucao: "Faixas elevadas e multas rigorosas" },
+            { tema: "Mobilidade", causa: "Aumento expressivo do transporte por aplicativo", problema: "Saturação viária por carros de app", consequencia: "Vias travadas em áreas de shows e aeroportos", solucao: "Bolsões de embarque/desembarque específicos" },
+            { tema: "Mobilidade", causa: "Falta de adaptação de frotas e estações antigas", problema: "Falta de acessibilidade no transporte", consequencia: "Pessoas com deficiência não conseguem usar o sistema", solucao: "Elevadores, piso tátil e frotas 100% piso baixo" },
+            { tema: "Mobilidade", causa: "Uso do solo viário apenas para trânsito", problema: "Ausência de calçadões de pedestres", consequencia: "Centros comerciais inóspitos e dominados por carros", solucao: "Pedonalização (fechamento de ruas para carros) no centro" },
+            { tema: "Mobilidade", causa: "Sucateamento da malha ferroviária histórica", problema: "Trens urbanos de passageiros abandonados", consequencia: "Dependência exclusiva das rodovias e ônibus", solucao: "Reativação de linhas férreas para transporte metropolitano" },
+
+            // Eixo 2: Infraestrutura e Habitação
+            { tema: "Habitação", causa: "Déficit habitacional e especulação imobiliária", problema: "Favelização e moradias precárias", consequencia: "Vulnerabilidade social e condições insalubres de vida", solucao: "Programas de habitação popular e urbanização de favelas" },
+            { tema: "Habitação", causa: "Expansão desordenada em loteamentos clandestinos", problema: "Falta de saneamento básico", consequencia: "Proliferação de doenças e esgoto a céu aberto", solucao: "Investimento pesado em redes de esgoto e água tratada" },
+            { tema: "Habitação", causa: "Falta de terras planas acessíveis aos mais pobres", problema: "Ocupação de encostas de morros", consequencia: "Alto risco de soterramento em época de chuvas", solucao: "Remoção preventiva e construção de muros de arrimo" },
+            { tema: "Habitação", causa: "Desrespeito às Áreas de Preservação Permanente (APP)", problema: "Construção nas margens e várzeas de rios", consequencia: "Casas inundadas e perda de móveis anualmente", solucao: "Parques lineares ribeirinhos e realocação das famílias" },
+            { tema: "Habitação", causa: "Baixa renda e aluguéis altíssimos", problema: "Coabitação familiar extrema", consequencia: "Falta de privacidade, estresse familiar e superlotação", solucao: "Oferta de crédito habitacional com juros zero" },
+            { tema: "Infraestrutura", causa: "Tubulações antigas e sem manutenção", problema: "Vazamentos na rede de água potável", consequencia: "Desperdício de milhões de litros de água tratada", solucao: "Troca da infraestrutura subterrânea por materiais modernos" },
+            { tema: "Infraestrutura", causa: "Ausência de fornecimento regular pela concessionária", problema: "Ligações elétricas clandestinas (gatos)", consequencia: "Risco de incêndios, choques e sobrecarga do sistema", solucao: "Regularização da rede e tarifa social de energia" },
+            { tema: "Infraestrutura", causa: "Crescimento populacional maior que a rede elétrica suporta", problema: "Quedas constantes de energia em bairros", consequencia: "Queima de eletrodomésticos e perda de alimentos", solucao: "Modernização e ampliação de subestações de energia" },
+            { tema: "Infraestrutura", causa: "Falta de verba pública para bairros afastados", problema: "Falta de asfalto em ruas de periferia", consequencia: "Poeira na seca (doenças) e lama nas chuvas (isolamento)", solucao: "Programas municipais de pavimentação asfáltica" },
+            { tema: "Infraestrutura", causa: "Descarte de lixo nas ruas e falta de limpeza", problema: "Tubulações de drenagem (bueiros) entupidas", consequencia: "Alagamentos rápidos de ruas durante tempestades", solucao: "Limpeza preventiva de bueiros e educação ambiental" },
+            { tema: "Infraestrutura", causa: "Desinteresse de operadoras em áreas menos rentáveis", problema: "Apagão digital (falta de internet banda larga)", consequencia: "Atraso escolar de jovens e dificuldade de home office", solucao: "Políticas de wi-fi público e subsídio a provedores locais" },
+            { tema: "Habitação", causa: "Imóveis retidos aguardando valorização do terreno", problema: "Prédios abandonados nos centros urbanos", consequencia: "Degradação do bairro e risco à saúde pública", solucao: "Cobrança de IPTU progressivo no tempo" },
+            { tema: "Infraestrutura", causa: "Omissão do poder público na inspeção estrutural", problema: "Má conservação de viadutos e pontes", consequencia: "Risco de desabamento e bloqueio de grandes vias", solucao: "Vistorias anuais e manutenção estrutural periódica" },
+            { tema: "Habitação", causa: "Venda de lotes ilegais por grileiros urbanos", problema: "Invasão de áreas de proteção de mananciais", consequencia: "Comprometimento do abastecimento de água da cidade", solucao: "Fiscalização ambiental rigorosa e congelamento da área" },
+            { tema: "Infraestrutura", causa: "Crescimento populacional não acompanhado por serviços", problema: "Hospitais e postos de saúde (UBS) sobrecarregados", consequencia: "Filas imensas, falta de médicos e atendimento precário", solucao: "Construção de novas unidades e contratação de profissionais" },
+            { tema: "Infraestrutura", causa: "Planejamento que ignora o adensamento populacional", problema: "Falta de vagas em creches públicas", consequencia: "Mães impedidas de trabalhar por não terem onde deixar os filhos", solucao: "Parcerias público-privadas para construção de creches" },
+            { tema: "Infraestrutura", causa: "Valorização extrema do metro quadrado", problema: "Ausência de praças, parques e áreas de lazer", consequencia: "População sem espaços de convivência gratuita e saúde mental", solucao: "Exigência de contrapartida de construtoras para criar praças" },
+            { tema: "Infraestrutura", causa: "Postes antigos cheios de fios soltos e emaranhados", problema: "Poluição visual e risco elétrico", consequencia: "Curto-circuitos e degradação da paisagem urbana", solucao: "Aterramento da fiação elétrica e de telecomunicações" },
+            { tema: "Habitação", causa: "Burocracia e custo alto de cartórios", problema: "Falta de regularização fundiária", consequencia: "Moradores sem escritura não conseguem crédito para reformar", solucao: "Programas públicos de entrega de títulos de posse" },
+            { tema: "Infraestrutura", causa: "Projetos antigos e mal dimensionados", problema: "Estações de Tratamento de Esgoto (ETE) insuficientes", consequencia: "Lançamento de parte do esgoto bruto na natureza", solucao: "Construção de novas ETEs modernas" },
+
+            // Eixo 3: Meio Ambiente Urbano
+            { tema: "Meio Ambiente", causa: "Excesso de asfalto/concreto e falta de árvores", problema: "Ilhas de calor", consequencia: "Desconforto térmico e maior consumo de energia", solucao: "Arborização urbana e criação de novos parques" },
+            { tema: "Meio Ambiente", causa: "Emissão de gases e bloqueio da dispersão em dias frios", problema: "Inversão térmica (Retenção de smog)", consequencia: "Aumento de problemas respiratórios (asma, bronquite)", solucao: "Controle de emissões industriais e transição energética" },
+            { tema: "Meio Ambiente", causa: "Alto índice de consumo e descarte inadequado", problema: "Acúmulo e descarte irregular de lixo", consequencia: "Atração de ratos/insetos e contaminação do solo", solucao: "Erradicação de lixões e coleta seletiva porta a porta" },
+            { tema: "Meio Ambiente", causa: "Impermeabilização do solo por asfalto", problema: "Enchentes e inundações rápidas", consequencia: "Perdas materiais, destruição e risco de leptospirose", solucao: "Criação de piscinões, telhados verdes e jardins de chuva" },
+            { tema: "Meio Ambiente", causa: "Reação da umidade com gases industriais (SO2 e NOx)", problema: "Chuva ácida", consequencia: "Corrosão de monumentos e alteração química de lagos", solucao: "Filtros industriais e uso de energia limpa" },
+            { tema: "Meio Ambiente", causa: "Retirada da vegetação nativa das encostas", problema: "Deslizamentos de terra", consequencia: "Soterramento de casas e mortes em áreas periféricas", solucao: "Reflorestamento de morros e drenagem de águas pluviais" },
+            { tema: "Meio Ambiente", causa: "Excesso de veículos sem silenciador e obras noturnas", problema: "Poluição sonora constante", consequencia: "Estresse, distúrbios do sono e perda auditiva gradual", solucao: "Lei do Silêncio rigorosa e barreiras acústicas" },
+            { tema: "Meio Ambiente", causa: "Excesso de painéis de LED, outdoors e fachadas", problema: "Poluição visual desregulada", consequencia: "Cansaço mental e descaracterização da arquitetura", solucao: "Leis de cidade limpa (restrição de publicidade externa)" },
+            { tema: "Meio Ambiente", causa: "Desmatamento nas margens (mata ciliar) e terra levada pela chuva", problema: "Assoreamento de rios urbanos", consequencia: "Diminuição da profundidade do rio e transbordamento fácil", solucao: "Replantio de matas ciliares e dragagem de rios" },
+            { tema: "Meio Ambiente", causa: "Descarte de baterias, pilhas e computadores no lixo comum", problema: "Acúmulo de lixo eletrônico", consequencia: "Vazamento de metais pesados (chumbo, mercúrio) no lençol freático", solucao: "Ecopontos específicos e logística reversa das fábricas" },
+            { tema: "Meio Ambiente", causa: "Terrenos baldios com água parada e lixo", problema: "Proliferação de vetores (mosquitos da Dengue)", consequencia: "Epidemias anuais que lotam o sistema de saúde", solucao: "Multas para donos de terrenos sujos e mutirões de limpeza" },
+            { tema: "Meio Ambiente", causa: "Lixões antigos não impermeabilizados", problema: "Vazamento de chorume", consequencia: "Contaminação fatal do solo e das águas subterrâneas", solucao: "Construção de aterros sanitários com mantas protetoras" },
+            { tema: "Meio Ambiente", causa: "Expansão de condomínios em áreas florestais", problema: "Supressão de áreas verdes maduras", consequencia: "Perda de biodiversidade (pássaros, insetos) na cidade", solucao: "Tombamento de áreas verdes e corredores ecológicos" },
+            { tema: "Meio Ambiente", causa: "Iluminação pública excessiva e mal direcionada para o céu", problema: "Poluição luminosa", consequencia: "Alteração do ciclo de animais noturnos e perda do céu estrelado", solucao: "Uso de luminárias direcionadas para baixo (Dark Sky)" },
+            { tema: "Meio Ambiente", causa: "Falta de destinação final para sobras de obras", problema: "Descarte ilegal de entulho (restos de construção)", consequencia: "Obstrução de calçadas, vias e córregos", solucao: "Trituração de entulho para reuso em asfalto/obras públicas" },
+            { tema: "Meio Ambiente", causa: "Canalização e concretagem de rios sinuosos", problema: "Rios urbanos transformados em canais de esgoto", consequencia: "Aumento da velocidade da água e enchentes mais graves abaixo", solucao: "Renaturalização de rios (quebrar o concreto e voltar a terra)" },
+            { tema: "Meio Ambiente", causa: "Limpeza de terrenos secos com fogo na periferia", problema: "Queimadas urbanas criminosas", consequencia: "Fumaça tóxica, risco de incêndio em casas e morte da fauna", solucao: "Patrulha ambiental e roçada mecânica de terrenos" },
+            { tema: "Meio Ambiente", causa: "Falta de sepulturas adequadas em cemitérios antigos", problema: "Vazamento de necrochorume", consequencia: "Contaminação da água consumida por poços próximos", solucao: "Cemitérios verticais ou impermeabilização de túmulos" },
+            { tema: "Meio Ambiente", causa: "Despejo clandestino de dejetos por fábricas locais", problema: "Poluição química das águas superficiais", consequencia: "Morte de peixes e impossibilidade de captação para consumo", solucao: "Fiscalização severa, cassação de alvarás e multas milionárias" },
+            { tema: "Meio Ambiente", causa: "Corte raso de árvores nas calçadas por medo de queda", problema: "Ausência de sombreamento nas ruas", consequencia: "Calçadas inóspitas que chegam a 50°C no verão", solucao: "Manejo adequado e plantio de espécies nativas de raízes profundas" },
+
+            // Eixo 4: Questões Sociais
+            { tema: "Social", causa: "Revitalização de bairros antigos e aumento de aluguéis", problema: "Gentrificação", consequencia: "Expulsão silenciosa de moradores tradicionais mais pobres", solucao: "Políticas de controle de aluguéis e ZEIS (Zonas Especiais)" },
+            { tema: "Social", causa: "Concentração de renda e planejamento voltado aos ricos", problema: "Segregação socioespacial", consequencia: "Bairros centrais com tudo e periferias abandonadas", solucao: "Distribuição igualitária de serviços, cultura e infraestrutura" },
+            { tema: "Social", causa: "Desemprego, perda de vínculos familiares e dependência", problema: "Aumento da população em situação de rua", consequencia: "Miséria extrema, degradação humana e mortalidade por frio", solucao: "Moradia Primeiro (Housing First), abrigos e apoio psicológico" },
+            { tema: "Social", causa: "Desigualdade social brutal e falta de oportunidades", problema: "Violência e criminalidade urbana", consequencia: "Sensação de medo constante e gastos altos com segurança privada", solucao: "Inteligência policial focada e projetos sociais para jovens" },
+            { tema: "Social", causa: "Fechamento de indústrias e migração de empresas", problema: "Desemprego estrutural na cidade", consequencia: "Queda na arrecadação, fome e aumento da informalidade", solucao: "Incentivos fiscais para polos tecnológicos e requalificação" },
+            { tema: "Social", causa: "Falta de emprego com carteira assinada", problema: "Crescimento explosivo do comércio ambulante e aplicativos", consequencia: "Trabalhadores sem direitos, sem INSS e sob risco constante", solucao: "Formalização via MEI e pontos fixos para camelôs" },
+            { tema: "Social", causa: "Abandono estatal em áreas vulneráveis", problema: "Domínio territorial pelo crime organizado (tráfico/milícias)", consequencia: "Moradores reféns de regras criminosas e tiroteios", solucao: "Presença constante do Estado com serviços (escolas, praças, luz)" },
+            { tema: "Social", causa: "Desvalorização do centro histórico", problema: "Esvaziamento noturno do centro da cidade", consequencia: "Vandalismo, assaltos e degradação do patrimônio histórico", solucao: "Incentivo à moradia no centro (Retrofit de prédios comerciais)" },
+            { tema: "Social", causa: "Foco exclusivo em shoppings centers privados", problema: "Falta de opções de lazer gratuito e aberto", consequencia: "Jovens sem opções culturais acabam vulneráveis ao crime", solucao: "Criação de centros culturais, pistas de skate e shows nas praças" },
+            { tema: "Social", causa: "Miséria familiar e evasão escolar", problema: "Trabalho infantil nos semáforos (venda/malabares)", consequencia: "Perda da infância, defasagem escolar e risco de atropelamento", solucao: "Programas de transferência de renda atrelados à frequência escolar" },
+            { tema: "Social", causa: "Desigualdade no policiamento (foco no patrimônio dos ricos)", problema: "Violência policial abusiva nas periferias", consequencia: "Morte de jovens negros e desconfiança da comunidade", solucao: "Câmeras corporais (bodycams) e policiamento comunitário" },
+            { tema: "Social", causa: "Falta de pertencimento e educação patrimonial", problema: "Vandalismo de monumentos e patrimônio público", consequencia: "Gastos milionários das prefeituras com reformas constantes", solucao: "Projetos de grafite urbano, zeladoria comunitária e educação" },
+            { tema: "Social", causa: "Crescimento da desigualdade no espaço urbano", problema: "Muros altos, cercas elétricas e condomínios fechados", consequencia: "Paranoia de segurança e morte das ruas comerciais", solucao: "Incentivo a fachadas ativas (prédios sem muro, com lojas embaixo)" },
+            { tema: "Social", causa: "Ausência de planejamento urbano inclusivo", problema: "Falta de acessibilidade para pessoas com deficiência (PCD)", consequencia: "Isolamento social de cadeirantes e deficientes visuais", solucao: "Desenho Universal obrigatório em todas as obras públicas" },
+            { tema: "Social", causa: "Preços altos de alimentos frescos e falta de sacolões na periferia", problema: "Desertos alimentares", consequencia: "População periférica consumindo apenas ultraprocessados (obesidade)", solucao: "Hortas comunitárias urbanas e feiras livres subsidiadas" },
+            { tema: "Social", causa: "Racismo estrutural na formação das cidades", problema: "Estigmatização de bairros negros e periféricos", consequencia: "Moradores perdem vagas de emprego apenas pelo CEP onde moram", solucao: "Ações afirmativas, combate ao racismo e valorização cultural do bairro" },
+            { tema: "Social", causa: "Concentração de leitos na rede privada", problema: "Desigualdade no acesso à saúde urbana", consequencia: "População de baixa renda morrendo de doenças tratáveis", solucao: "Fortalecimento do SUS municipal e UPAs 24 horas" },
+            { tema: "Social", causa: "Planejamento que ignora a mudança demográfica", problema: "Cidades não adaptadas para o envelhecimento da população", consequencia: "Idosos sofrem acidentes nas ruas e vivem isolados em casa", solucao: "Rampas suaves, tempo de semáforo maior e centros de convivência" },
+            { tema: "Social", causa: "Migração forçada (refugiados e imigrantes em busca de emprego)", problema: "Xenofobia no espaço urbano e exploração laboral", consequencia: "Imigrantes vivendo em cortiços e trabalhando em condições análogas à escravidão", solucao: "Políticas de acolhimento, ensino de português e fiscalização do trabalho" },
+            { tema: "Social", causa: "Alta inflação e baixo poder de compra", problema: "Aumento de furtos famélicos (roubo de comida) nos mercados", consequencia: "Tensão social e prisão de pessoas por crimes de bagatela", solucao: "Restaurantes populares (Bom Prato) e bancos de alimentos" }
+        ];
+
+        // GABARITO DAS CRISES INESPERADAS (10 Eventos)
+        const eventosInesperados = [
+            { 
+                texto: "⛈️ Chuva recorde alagou avenidas centrais! A cidade parou.", 
+                pergunta: "Para conter a crise, qual decreto de infraestrutura você assina para resolver o problema de alagamento?",
+                palavrasChave: ["drenagem", "bueiro", "bueiros", "piscinão", "piscinões", "permeável", "galeria", "galerias", "árvores", "asfalto", "limpeza", "lixo"],
+                punicaoInicial: -15
+            },
+            { 
+                texto: "🚌 Greve geral do transporte público! População sem ônibus.", 
+                pergunta: "O que você decreta para modernizar e melhorar a eficiência do transporte coletivo a longo prazo?",
+                palavrasChave: ["frota", "subsídio", "tarifa", "corredor", "faixa", "exclusiva", "integração", "terminal", "elétrico", "modal", "modais", "metrô", "brt"],
+                punicaoInicial: -20
+            },
+            { 
+                texto: "🌡️ Onda de calor extremo atinge a periferia da cidade (40°C).", 
+                pergunta: "A população sofre com as Ilhas de Calor. Qual medida ambiental você decreta para resfriar os bairros?",
+                palavrasChave: ["arborização", "árvores", "parque", "parques", "verde", "verdes", "praça", "praças", "telhado", "clima", "plantio", "sombreamento"],
+                punicaoInicial: -15
+            },
+            { 
+                texto: "🏚️ Ocupação irregular massiva em área de encosta desaba com a chuva.", 
+                pergunta: "Qual sua política habitacional para evitar novas ocupações em áreas de risco?",
+                palavrasChave: ["popular", "social", "zeis", "aluguel", "urbanização", "favela", "favelas", "risco", "encosta", "reassentamento", "minha casa", "habitacional"],
+                punicaoInicial: -25
+            },
+            { 
+                texto: "🐀 O lixão da cidade estourou sua capacidade e contaminou o solo.", 
+                pergunta: "Qual o novo plano de gestão de resíduos sólidos que sua prefeitura vai implementar?",
+                palavrasChave: ["coleta", "seletiva", "reciclagem", "aterro", "sanitário", "chorume", "compostagem", "ecoponto", "logística", "reversa", "resíduos"],
+                punicaoInicial: -20
+            },
+            { 
+                texto: "😷 Aumento de 300% nas internações por asma devido ao ar poluído.", 
+                pergunta: "Como combater a Inversão Térmica e a poluição do ar gerada pelas indústrias e carros?",
+                palavrasChave: ["emissão", "emissões", "indústria", "filtro", "inspeção", "transporte", "limpo", "monitoramento", "particulado", "gases", "elétrico"],
+                punicaoInicial: -15
+            },
+            { 
+                texto: "🚨 Aumento explosivo da criminalidade e assaltos noturnos em praças.", 
+                pergunta: "Além da polícia, qual medida de urbanismo social você decreta para afastar o crime dos espaços públicos?",
+                palavrasChave: ["iluminação", "guarda", "comunitário", "praça", "ocupação", "social", "prevenção", "câmera", "zeladoria", "cultura", "lazer", "esporte"],
+                punicaoInicial: -20
+            },
+            { 
+                texto: "🚰 Seca severa esvazia as represas. Bairros inteiros sem água.", 
+                pergunta: "A crise hídrica apertou. Qual decreto estrutural você cria para garantir o abastecimento de água?",
+                palavrasChave: ["racionamento", "perda", "perdas", "vazamento", "vazamentos", "manancial", "represa", "reúso", "captação", "nascente", "nascentes", "desperdício"],
+                punicaoInicial: -20
+            },
+            { 
+                texto: "💥 Recorde de atropelamentos e acidentes em avenidas de alta velocidade.", 
+                pergunta: "Como você usa o planejamento urbano e fiscalização para reduzir as mortes no trânsito (Visão Zero)?",
+                palavrasChave: ["fiscalização", "radar", "lombada", "educação", "ciclovia", "passarela", "calçada", "velocidade", "sinalização", "faixa", "elevada"],
+                punicaoInicial: -15
+            },
+            { 
+                texto: "🦠 Surto de Leptospirose e cólera em bairros periféricos cortados por córregos.", 
+                pergunta: "O foco da contaminação é a falta de saneamento. Qual sua obra emergencial para a região?",
+                palavrasChave: ["tratamento", "ete", "tubulação", "coleta", "interceptor", "esgoto", "saúde", "doença", "doenças", "rio", "canalização", "básico"],
+                punicaoInicial: -25
+            }
+        ];
+
+        let nomePrefeito = "";
+        let faseAtual = 0;
+        let score = 0;
+        let combo = 1;
+        let approval = 50; 
+        let cartoesAtuais = [];
+        let mandatoAtual = 1;
+        let historicoDecretos = ""; 
+        let eventoSorteadoAtual = null;
+
+        function startGame() {
+            const inputName = document.getElementById('player-name').value.trim();
+            nomePrefeito = inputName === "" ? "Gestor(a)" : inputName;
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            embaralhar(cenarios); // Aleatoriza as 80 fases!
+            atualizarHUD();
+            carregarFase();
+        }
+
+        function atualizarHUD() {
+            approval = Math.max(0, Math.min(100, approval));
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('combo-display').innerText = `x${combo}`;
+            document.getElementById('approval-text').innerText = `${approval}%`;
+            
+            const fill = document.getElementById('approval-fill');
+            fill.style.width = `${approval}%`;
+            if (approval > 70) fill.style.background = '#4cd137';
+            else if (approval > 30) fill.style.background = '#fbc531';
+            else fill.style.background = '#e84118';
+        }
+
+        function carregarFase() {
+            if (faseAtual >= cenarios.length) {
+                document.getElementById('fase-info').innerText = "🎉 MANDATOS CONCLUÍDOS! TODAS AS CRISES FORAM RESOLVIDAS!";
+                finalizarJogo();
+                return;
+            }
+
+            const cenario = cenarios[faseAtual];
+            document.getElementById('fase-info').innerText = `Mesa do(a) Prefeito(a) ${nomePrefeito} | Crise #${faseAtual + 1} - Eixo ${cenario.tema}`;
+            document.getElementById('message').innerText = "";
+            document.getElementById('btn-next').style.display = 'none';
+            document.getElementById('btn-check').style.display = 'block';
+
+            const zonasTextos = ['Arraste a Causa', 'Arraste o Problema', 'Arraste a Consequência', 'Arraste a Solução'];
+            ['causa', 'problema', 'consequencia', 'solucao'].forEach((tipo, index) => {
+                const zone = document.getElementById(`zone-${tipo}`);
+                zone.innerHTML = zonasTextos[index];
+                zone.classList.remove('over', 'success');
+            });
+
+            cartoesAtuais = [
+                { id: `c-${faseAtual}-1`, tipo: 'causa', texto: cenario.causa },
+                { id: `c-${faseAtual}-2`, tipo: 'problema', texto: cenario.problema },
+                { id: `c-${faseAtual}-3`, tipo: 'consequencia', texto: cenario.consequencia },
+                { id: `c-${faseAtual}-4`, tipo: 'solucao', texto: cenario.solucao }
+            ];
+
+            embaralhar(cartoesAtuais); // Aleatoriza a ordem das 4 cartas no banco
+            renderizarCartas();
+        }
+
+        function renderizarCartas() {
+            const cardBank = document.getElementById('card-bank');
+            cardBank.innerHTML = '';
+            cartoesAtuais.forEach(cartao => {
+                const div = document.createElement('div');
+                div.className = 'card'; div.draggable = true; div.id = cartao.id;
+                div.dataset.type = cartao.tipo; div.innerText = cartao.texto;
+                div.addEventListener('dragstart', dragStart);
+                div.addEventListener('dragend', dragEnd);
+                cardBank.appendChild(div);
+            });
+        }
+
+        function embaralhar(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // --- DRAG & DROP ---
+        function dragStart(e) { e.dataTransfer.setData('text/plain', e.target.id); setTimeout(() => { e.target.style.opacity = '0.4'; }, 0); }
+        function dragEnd(e) { e.target.style.opacity = '1'; }
+        
+        const dropZones = document.querySelectorAll('.drop-zone');
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
+            zone.addEventListener('dragleave', () => { zone.classList.remove('over'); });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault(); zone.classList.remove('over');
+                const id = e.dataTransfer.getData('text/plain');
+                const draggable = document.getElementById(id);
+                if (!draggable) return;
+                
+                const cartaExistente = zone.querySelector('.card');
+                if (cartaExistente) document.getElementById('card-bank').appendChild(cartaExistente);
+                
+                if(zone.innerText.includes("Arraste")) zone.innerHTML = '';
+                zone.appendChild(draggable);
+            });
+        });
+
+        const cardBank = document.getElementById('card-bank');
+        cardBank.addEventListener('dragover', (e) => e.preventDefault());
+        cardBank.addEventListener('drop', (e) => {
+            e.preventDefault(); const id = e.dataTransfer.getData('text/plain');
+            const draggable = document.getElementById(id); if (draggable) cardBank.appendChild(draggable);
+        });
+
+        // --- LÓGICA DE VALIDAÇÃO ---
+        function checkAnswers() {
+            const zones = ['causa', 'problema', 'consequencia', 'solucao'];
+            let allCorrect = true; let filled = true;
+
+            zones.forEach(zoneType => {
+                const zone = document.getElementById(`zone-${zoneType}`);
+                const card = zone.querySelector('.card');
+                if (!card) filled = false; else if (card.getAttribute('data-type') !== zoneType) allCorrect = false;
+            });
+
+            const msgDiv = document.getElementById('message');
+            const gameBoard = document.getElementById('game-board');
+
+            if (!filled) { msgDiv.style.color = '#fbc531'; msgDiv.innerText = "⚠️ Preencha todo o planejamento!"; return; } 
+            
+            if (allCorrect) {
+                let pontosGanhos = 100 * combo; score += pontosGanhos; combo++; approval += 15;
+                msgDiv.style.color = '#4cd137'; msgDiv.innerText = `✅ Medida Aprovada! (+${pontosGanhos} pts)`;
+                zones.forEach(z => document.getElementById(`zone-${z}`).classList.add('success'));
+                document.getElementById('btn-check').style.display = 'none';
+                document.getElementById('btn-next').style.display = 'block';
+                verificarReeleicao();
+            } else {
+                combo = 1; approval -= 15;
+                gameBoard.classList.remove('shake'); void gameBoard.offsetWidth; gameBoard.classList.add('shake');
+                if (approval <= 0) {
+                    approval = 0; atualizarHUD(); msgDiv.style.color = '#e84118';
+                    msgDiv.innerText = "🚨 IMPEACHMENT! Você foi afastado do cargo.";
+                    document.getElementById('btn-check').style.display = 'none';
+                    setTimeout(finalizarJogo, 3000); return;
+                }
+                msgDiv.style.color = '#e84118'; msgDiv.innerText = "❌ Planejamento falhou! A crise piorou.";
+            }
+            atualizarHUD();
+        }
+
+        function verificarReeleicao() {
+            if (approval >= 100) {
+                score += 1000; approval = 80; mandatoAtual++;
+                document.getElementById('modal-reeleicao').style.display = 'flex';
+                atualizarHUD();
+            }
+        }
+
+        // --- EVENTOS INESPERADOS ---
+        function processarProximaFase() {
+            faseAtual++;
+            
+            // 30% de chance de rolar uma Crise (Aleatório)
+            if (Math.random() <= 0.30 && faseAtual < cenarios.length) {
+                eventoSorteadoAtual = eventosInesperados[Math.floor(Math.random() * eventosInesperados.length)];
+                
+                approval += eventoSorteadoAtual.punicaoInicial;
+                atualizarHUD();
+
+                document.getElementById('texto-crise').innerText = eventoSorteadoAtual.texto;
+                document.getElementById('pergunta-crise').innerText = eventoSorteadoAtual.pergunta;
+                document.getElementById('resposta-crise').value = "";
+                document.getElementById('erro-crise').style.display = "none";
+                
+                document.getElementById('modal-crise').style.display = 'flex';
+            } else {
+                carregarFase();
+            }
+        }
+
+        // --- AUTO-CORREÇÃO COM PALAVRAS-CHAVE ---
+        function avaliarDecreto() {
+            const textoResposta = document.getElementById('resposta-crise').value.trim();
+            const erroDiv = document.getElementById('erro-crise');
+
+            if (textoResposta.length < 20) {
+                erroDiv.style.display = "block";
+                return;
+            }
+            erroDiv.style.display = "none";
+
+            historicoDecretos += `[Fase ${faseAtual}] ${textoResposta} | `;
+
+            const textoMin = textoResposta.toLowerCase();
+            let acertos = 0;
+            let palavrasEncontradas = [];
+
+            eventoSorteadoAtual.palavrasChave.forEach(palavra => {
+                if(textoMin.includes(palavra)) {
+                    acertos++;
+                    palavrasEncontradas.push(palavra);
+                }
+            });
+
+            const feedbackTexto = document.getElementById('texto-feedback');
+            const feedbackStatus = document.getElementById('status-feedback');
+            
+            if (acertos === 0) {
+                feedbackTexto.innerText = "❌ Decreto Vazio! Você não apresentou soluções técnicas adequadas (sem vocabulário geográfico/urbano). A crise continuou.";
+                feedbackTexto.style.color = "#e84118";
+                feedbackStatus.innerText = "Nenhuma palavra-chave técnica encontrada.";
+            } else if (acertos === 1) {
+                approval += 15; 
+                score += 50;
+                feedbackTexto.innerText = "⚠️ Decreto Razoável. A imprensa notou alguma ação sua, mas exigia soluções mais completas e sistêmicas.";
+                feedbackTexto.style.color = "#fbc531";
+                feedbackStatus.innerText = `Você mencionou: ${palavrasEncontradas[0]}.`;
+            } else {
+                approval += 30; // Bônus alto por usar mais de 1 termo técnico
+                score += 200;
+                feedbackTexto.innerText = "✅ Decreto Excelente! Ações estruturais precisas. A população aplaudiu suas propostas técnicas!";
+                feedbackTexto.style.color = "#4cd137";
+                feedbackStatus.innerText = `Palavras-chave detectadas: ${palavrasEncontradas.join(', ')}.`;
+            }
+
+            atualizarHUD();
+            document.getElementById('modal-crise').style.display = 'none';
+            document.getElementById('modal-feedback').style.display = 'flex';
+        }
+
+        function fecharModalFeedback() {
+            document.getElementById('modal-feedback').style.display = 'none';
+            if (approval <= 0) {
+                document.getElementById('message').style.color = '#e84118';
+                document.getElementById('message').innerText = "🚨 IMPEACHMENT! A crise arruinou sua imagem pública.";
+                setTimeout(finalizarJogo, 2000);
+            } else {
+                carregarFase();
+            }
+        }
+
+        function fecharModal(idModal) {
+            document.getElementById(idModal).style.display = 'none';
+            carregarFase();
+        }
+
+        // --- FINALIZAÇÃO E ENVIO PARA O GOOGLE SHEETS ---
+        function finalizarJogo() {
+            document.getElementById('card-bank').innerHTML = "";
+            document.querySelector('.game-board').style.display = 'none';
+            document.getElementById('btn-check').style.display = 'none';
+            document.getElementById('btn-next').style.display = 'none';
+            
+            let statusFinal = approval > 0 ? "Fim do Mandato - Sucesso!" : "Mandato Cassado";
+            document.getElementById('message').style.color = '#00a8ff';
+            document.getElementById('message').innerHTML = `
+                ${statusFinal} <br> 
+                Prefeito(a): ${nomePrefeito} <br>
+                Pontuação Final: ${score} <br> 
+                Mandatos Cumpridos: ${mandatoAtual} <br><br>
+                <span style="color: #4cd137; font-size: 18px;">Enviando relatório ao Tribunal de Contas...</span>
+            `;
+
+            let dadosParaPlanilha = {
+                nome: nomePrefeito, 
+                pontuacao: score, 
+                mandatos: mandatoAtual,
+                aprovacao: approval, 
+                respostas: historicoDecretos 
+            };
+
+            // PROF. LEGEO: COLE O SEU LINK DO GOOGLE SCRIPT AQUI ENTRE AS ASPAS!
+            const urlDoGoogleScript = "COLE_AQUI_A_SUA_URL_DO_APP_DA_WEB";
+
+            fetch(urlDoGoogleScript, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dadosParaPlanilha)
+            }).then(() => {
+                document.getElementById('message').innerHTML += `<br><span style="color: #fbc531; font-size: 18px;">✅ Relatório salvo. Pode fechar o jogo.</span>`;
+            }).catch(e => console.error(e));
+        }
+    </script>
+</body>
+</html>

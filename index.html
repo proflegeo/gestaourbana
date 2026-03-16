@@ -131,8 +131,8 @@
     <a href="https://legeo.com.br" target="_blank" class="watermark">legeo.com.br</a>
 
     <script>
-        // LINK OFICIAL DO GOOGLE SHEETS
-        const urlDoGoogleScript = "https://script.google.com/macros/s/AKfycbwpHoJg8o7u-7mOjJnLjEIlxMu7Z9WyyEviCkL_kWTyYssZFLdGRLfnhOuEwXXVy6bpjw/exec";
+        // LINK OFICIAL DO GOOGLE SHEETS (CORRIGIDO PARA O LINK NOVO)
+        const urlDoGoogleScript = "https://script.google.com/macros/s/AKfycbwgMXkpR8cVDBqD7ahVPXl70IXqYQFLNRpMNzY2sqId7_YJKMMATceDBZJfJySbeJ4tEw/exec";
 
         let cenarios = [];
         let eventosInesperados = [];
@@ -305,6 +305,7 @@
 
             let dadosParaPlanilha = { nome: nomePrefeito, pontuacao: score, mandatos: mandatoAtual, aprovacao: approval, respostas: historicoDecretos };
             
+            // Usa a mesma variável global de conexão para enviar os resultados de volta!
             fetch(urlDoGoogleScript, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dadosParaPlanilha) })
             .then(() => { 
                 document.getElementById('message').innerHTML += `<br><span style="color: #fbc531; font-size: 18px;">✅ Relatório salvo na sua planilha.</span>`; 

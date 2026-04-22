@@ -8,7 +8,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap');
         body { font-family: 'Roboto', sans-serif; background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%); color: #f5f6fa; text-align: center; margin: 0; padding: 20px; min-height: 100vh; position: relative; }
         h1 { font-family: 'Orbitron', sans-serif; color: #00a8ff; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 2px; }
-        #game-screen { display: none; padding-bottom: 60px; }
+        #game-screen { display: none; padding-bottom: 80px; }
         #start-screen { margin-top: 10vh; background: rgba(0, 0, 0, 0.4); padding: 50px; border-radius: 15px; display: inline-block; border: 2px solid #00a8ff; box-shadow: 0 0 30px rgba(0, 168, 255, 0.3); }
         #start-screen input { padding: 15px; font-size: 20px; border-radius: 8px; border: none; margin-bottom: 20px; width: 80%; text-align: center; font-family: 'Roboto', sans-serif; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 100; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; box-sizing: border-box;}
@@ -42,6 +42,10 @@
         .btn-container { margin-top: 30px; display: flex; justify-content: center; gap: 20px; height: 60px; }
         #btn-next { background: linear-gradient(135deg, #e1b12c 0%, #fbc531 100%); display: none; color: #2f3640;}
         #btn-restart { background: linear-gradient(135deg, #e84118 0%, #c23616 100%); display: none; margin: 20px auto 0 auto; }
+        
+        /* Novo botão de finalizar mandato */
+        #btn-end { background: linear-gradient(135deg, #b33939 0%, #cd6133 100%); margin-top: 40px; font-size: 14px; padding: 12px 25px; }
+        
         #message { margin-top: 25px; font-size: 24px; font-weight: bold; min-height: 40px; text-transform: uppercase; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-10px); } 50% { transform: translateX(10px); } }
         .shake { animation: shake 0.4s ease-in-out; }
@@ -66,7 +70,7 @@
 <body>
 
     <div id="start-screen">
-        <h1 style="font-size: 40px; margin-bottom: 20px;">🏛️ Gestão Urbana</h1>
+        <h1 style="font-size: 40px; margin-bottom: 20px;">🏛️ Cadeia Urbana</h1>
         <p style="font-size: 22px; margin-bottom: 30px;">O simulador oficial de Gestão de Crises.</p>
         <input type="text" id="player-name" placeholder="Nome do(a) Prefeito(a) ou Equipe" autocomplete="off">
         <br><button class="btn" id="btn-iniciar" onclick="startGame()" disabled>Conectando ao banco de dados...</button>
@@ -126,12 +130,14 @@
         <button class="btn" id="btn-restart" onclick="location.reload()">Tentar Novamente 🔄</button>
         
         <div class="card-bank" id="card-bank"></div>
+        
+        <button class="btn" id="btn-end" onclick="confirmarFimMandato()">🛑 Encerrar Mandato e Entregar Relatório</button>
+
     </div>
     
     <a href="https://legeo.com.br" target="_blank" class="watermark">legeo.com.br</a>
 
     <script>
-        // LINK OFICIAL DO GOOGLE SHEETS (CORRIGIDO PARA O LINK NOVO)
         const urlDoGoogleScript = "https://script.google.com/macros/s/AKfycbwgMXkpR8cVDBqD7ahVPXl70IXqYQFLNRpMNzY2sqId7_YJKMMATceDBZJfJySbeJ4tEw/exec";
 
         let cenarios = [];
@@ -139,7 +145,6 @@
         let nomePrefeito = ""; let faseAtual = 0; let score = 0; let combo = 1; let approval = 50; 
         let cartoesAtuais = []; let mandatoAtual = 1; let historicoDecretos = ""; let eventoSorteadoAtual = null;
 
-        // --- CONEXÃO COM A PLANILHA AO ABRIR O JOGO ---
         window.onload = async () => {
             const btnIniciar = document.getElementById('btn-iniciar');
             try {
@@ -297,19 +302,28 @@
         function fecharModalFeedback() { document.getElementById('modal-feedback').style.display = 'none'; if (approval <= 0) { document.getElementById('message').style.color = '#e84118'; document.getElementById('message').innerText = "🚨 IMPEACHMENT! A crise arruinou sua imagem pública."; setTimeout(finalizarJogo, 2000); } else { carregarFase(); } }
         function fecharModal(idModal) { document.getElementById(idModal).style.display = 'none'; carregarFase(); }
 
+        // --- NOVA FUNÇÃO: Confirmar antes de encerrar voluntariamente ---
+        function confirmarFimMandato() {
+            if(confirm("Atenção, Prefeito(a)! Tem certeza que deseja encerrar o seu mandato agora? Sua pontuação e seus relatórios serão enviados ao Tribunal de Contas (Professor).")) {
+                finalizarJogo();
+            }
+        }
+
         function finalizarJogo() {
             document.getElementById('card-bank').innerHTML = ""; document.querySelector('.game-board').style.display = 'none'; document.getElementById('btn-check').style.display = 'none'; document.getElementById('btn-next').style.display = 'none';
+            
+            // Esconde o botão de encerrar mandato para não ficar feio na tela final
+            document.getElementById('btn-end').style.display = 'none';
+
             let statusFinal = approval > 0 ? "Fim do Mandato - Sucesso!" : "Mandato Cassado";
             document.getElementById('message').style.color = '#00a8ff';
             document.getElementById('message').innerHTML = `${statusFinal} <br> Prefeito(a): ${nomePrefeito} <br> Pontuação Final: ${score} <br> Mandatos Cumpridos: ${mandatoAtual} <br><br><span style="color: #4cd137; font-size: 18px;">Enviando relatório ao Tribunal de Contas...</span>`;
 
             let dadosParaPlanilha = { nome: nomePrefeito, pontuacao: score, mandatos: mandatoAtual, aprovacao: approval, respostas: historicoDecretos };
             
-            // Usa a mesma variável global de conexão para enviar os resultados de volta!
             fetch(urlDoGoogleScript, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dadosParaPlanilha) })
             .then(() => { 
                 document.getElementById('message').innerHTML += `<br><span style="color: #fbc531; font-size: 18px;">✅ Relatório salvo na sua planilha.</span>`; 
-                // Exibe o botão de reiniciar após finalizar e salvar os dados
                 document.getElementById('btn-restart').style.display = 'inline-block';
             })
             .catch(e => console.error(e));

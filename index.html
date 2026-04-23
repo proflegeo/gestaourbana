@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador: Gestão de Crise Urbana</title>
+    <title>Simulador: Gestão Urbana</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap');
         body { font-family: 'Roboto', sans-serif; background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%); color: #f5f6fa; text-align: center; margin: 0; padding: 20px; min-height: 100vh; position: relative; }
@@ -41,15 +41,13 @@
         .btn-dark { background: #2f3640; color: white; border: 2px solid white; width: 100%; margin-top: 10px;}
         .btn-container { margin-top: 30px; display: flex; justify-content: center; gap: 20px; height: 60px; }
         #btn-next { background: linear-gradient(135deg, #e1b12c 0%, #fbc531 100%); display: none; color: #2f3640;}
-        #btn-restart { background: linear-gradient(135deg, #e84118 0%, #c23616 100%); display: none; margin: 20px auto 0 auto; }
-        
+        #btn-restart { background: linear-gradient(135deg, #e84118 0%, #c23616 100%); display: none; margin: 20px auto; }
         #btn-end { background: linear-gradient(135deg, #b33939 0%, #cd6133 100%); margin-top: 40px; font-size: 14px; padding: 12px 25px; }
-        
         #message { margin-top: 25px; font-size: 24px; font-weight: bold; min-height: 40px; text-transform: uppercase; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-10px); } 50% { transform: translateX(10px); } }
         .shake { animation: shake 0.4s ease-in-out; }
         
-        /* RANKING CSS AQUI */
+        /* RANKING CSS */
         #ranking-container { display: none; margin: 30px auto; max-width: 600px; background: rgba(0, 0, 0, 0.5); padding: 25px; border-radius: 12px; border: 2px solid #fbc531; box-shadow: 0 0 20px rgba(251, 197, 49, 0.3); }
         #ranking-container h3 { font-family: 'Orbitron', sans-serif; color: #fbc531; margin-top: 0; font-size: 24px;}
         .ranking-table { width: 100%; text-align: left; border-collapse: collapse; font-size: 18px; }
@@ -65,10 +63,10 @@
 <body>
 
     <div id="start-screen">
-        <h1 style="font-size: 40px; margin-bottom: 20px;">🏛️ Gestão Urbana</h1>
+        <h1 style="font-size: 40px; margin-bottom: 20px;">🏛️ GESTÃO URBANA</h1>
         <p style="font-size: 22px; margin-bottom: 30px;">O simulador oficial do Legeo para Gestão de Crises.</p>
         <input type="text" id="player-name" placeholder="Nome do(a) Prefeito(a) ou Equipe" autocomplete="off">
-        <br><button class="btn" id="btn-iniciar" onclick="startGame()" disabled>Conectando ao banco de dados...</button>
+        <br><button class="btn" id="btn-iniciar" onclick="startGame()" disabled>CONECTANDO AO BANCO DE DADOS...</button>
     </div>
 
     <div class="modal-overlay" id="modal-crise">
@@ -136,11 +134,10 @@
     <a href="https://legeo.com.br" target="_blank" class="watermark">legeo.com.br</a>
 
     <script>
-        // LINK NOVO AQUI
+        // SEU LINK DO GOOGLE SCRIPT CORRETO
         const urlDoGoogleScript = "https://script.google.com/macros/s/AKfycbxP_s8-i4lXcqlV9ieESXRc8n6VmmIZ7BNiWeYzkwQk8CCs95KRpWMuWiTzlds56I8zgQ/exec";
 
-        let cenarios = [];
-        let eventosInesperados = [];
+        let cenarios = []; let eventosInesperados = [];
         let nomePrefeito = ""; let faseAtual = 0; let score = 0; let combo = 1; let approval = 50; 
         let cartoesAtuais = []; let mandatoAtual = 1; let historicoDecretos = ""; let eventoSorteadoAtual = null;
 
@@ -149,32 +146,20 @@
             try {
                 const resposta = await fetch(urlDoGoogleScript);
                 const dados = await resposta.json();
-                
-                cenarios = dados.cenarios;
-                eventosInesperados = dados.crises;
-                
-                btnIniciar.innerText = "Assumir o Cargo";
-                btnIniciar.disabled = false;
+                cenarios = dados.cenarios; eventosInesperados = dados.crises;
+                btnIniciar.innerText = "ASSUMIR O CARGO"; btnIniciar.disabled = false;
             } catch(erro) {
-                console.error(erro);
-                btnIniciar.innerText = "Erro ao carregar banco de dados";
-                alert("Falha ao conectar com o Google Sheets. Verifique sua conexão ou se há dados nas abas Cenarios e Crises.");
+                console.error(erro); btnIniciar.innerText = "Erro ao carregar banco de dados";
+                alert("Falha ao conectar com o Google Sheets.");
             }
         };
 
         function startGame() {
-            if(cenarios.length === 0) {
-                alert("O banco de dados de cenários está vazio. Preencha a planilha!");
-                return;
-            }
-            
-            const inputName = document.getElementById('player-name').value.trim();
-            nomePrefeito = inputName === "" ? "Gestor(a)" : inputName;
+            if(cenarios.length === 0) return alert("Banco de dados vazio!");
+            nomePrefeito = document.getElementById('player-name').value.trim() || "Gestor(a)";
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
-            embaralhar(cenarios); 
-            atualizarHUD();
-            carregarFase();
+            embaralhar(cenarios); atualizarHUD(); carregarFase();
         }
 
         function atualizarHUD() {
@@ -182,23 +167,19 @@
             document.getElementById('score-display').innerText = score;
             document.getElementById('combo-display').innerText = `x${combo}`;
             document.getElementById('approval-text').innerText = `${approval}%`;
-            const fill = document.getElementById('approval-fill');
-            fill.style.width = `${approval}%`;
-            if (approval > 70) fill.style.background = '#4cd137'; else if (approval > 30) fill.style.background = '#fbc531'; else fill.style.background = '#e84118';
+            const fill = document.getElementById('approval-fill'); fill.style.width = `${approval}%`;
+            fill.style.background = approval > 70 ? '#4cd137' : approval > 30 ? '#fbc531' : '#e84118';
         }
 
         function carregarFase() {
             if (faseAtual >= cenarios.length) { document.getElementById('fase-info').innerText = "🎉 MANDATOS CONCLUÍDOS!"; finalizarJogo(); return; }
             const cenario = cenarios[faseAtual];
-            document.getElementById('fase-info').innerText = `Mesa do(a) Prefeito(a) ${nomePrefeito} | Crise #${faseAtual + 1} - Eixo ${cenario.tema}`;
-            document.getElementById('message').innerText = "";
-            document.getElementById('btn-next').style.display = 'none';
-            document.getElementById('btn-check').style.display = 'block';
-
+            document.getElementById('fase-info').innerText = `Mesa do(a) Prefeito(a) ${nomePrefeito} | Crise #${faseAtual + 1}`;
+            document.getElementById('message').innerText = ""; document.getElementById('btn-next').style.display = 'none'; document.getElementById('btn-check').style.display = 'block';
+            
             const zonasTextos = ['Arraste a Causa', 'Arraste o Problema', 'Arraste a Consequência', 'Arraste a Solução'];
             ['causa', 'problema', 'consequencia', 'solucao'].forEach((tipo, index) => {
-                const zone = document.getElementById(`zone-${tipo}`);
-                zone.innerHTML = zonasTextos[index]; zone.classList.remove('over', 'success');
+                const zone = document.getElementById(`zone-${tipo}`); zone.innerHTML = zonasTextos[index]; zone.classList.remove('over', 'success');
             });
 
             cartoesAtuais = [
@@ -219,7 +200,6 @@
         }
 
         function embaralhar(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
-
         function dragStart(e) { e.dataTransfer.setData('text/plain', e.target.id); setTimeout(() => { e.target.style.opacity = '0.4'; }, 0); }
         function dragEnd(e) { e.target.style.opacity = '1'; }
         
@@ -228,8 +208,7 @@
             zone.addEventListener('dragleave', () => { zone.classList.remove('over'); });
             zone.addEventListener('drop', (e) => {
                 e.preventDefault(); zone.classList.remove('over');
-                const id = e.dataTransfer.getData('text/plain'); const draggable = document.getElementById(id);
-                if (!draggable) return;
+                const draggable = document.getElementById(e.dataTransfer.getData('text/plain')); if (!draggable) return;
                 const cartaExistente = zone.querySelector('.card'); if (cartaExistente) document.getElementById('card-bank').appendChild(cartaExistente);
                 if(zone.innerText.includes("Arraste")) zone.innerHTML = '';
                 zone.appendChild(draggable);
@@ -258,8 +237,7 @@
                 document.getElementById('btn-check').style.display = 'none'; document.getElementById('btn-next').style.display = 'block';
                 verificarReeleicao();
             } else {
-                combo = 1; approval -= 15;
-                gameBoard.classList.remove('shake'); void gameBoard.offsetWidth; gameBoard.classList.add('shake');
+                combo = 1; approval -= 15; gameBoard.classList.remove('shake'); void gameBoard.offsetWidth; gameBoard.classList.add('shake');
                 if (approval <= 0) {
                     approval = 0; atualizarHUD(); msgDiv.style.color = '#e84118'; msgDiv.innerText = "🚨 IMPEACHMENT! Você foi afastado do cargo.";
                     document.getElementById('btn-check').style.display = 'none'; setTimeout(finalizarJogo, 3000); return;
@@ -291,9 +269,9 @@
             eventoSorteadoAtual.palavrasChave.forEach(palavra => { if(textoMin.includes(palavra)) { acertos++; palavrasEncontradas.push(palavra); } });
 
             const feedbackTexto = document.getElementById('texto-feedback'); const feedbackStatus = document.getElementById('status-feedback');
-            if (acertos === 0) { feedbackTexto.innerText = "❌ Decreto Vazio! Sem vocabulário geográfico/urbano."; feedbackTexto.style.color = "#e84118"; feedbackStatus.innerText = "Nenhuma palavra-chave técnica encontrada."; } 
-            else if (acertos === 1) { approval += 15; score += 50; feedbackTexto.innerText = "⚠️ Decreto Razoável. Exigia soluções mais completas."; feedbackTexto.style.color = "#fbc531"; feedbackStatus.innerText = `Você mencionou: ${palavrasEncontradas[0]}.`; } 
-            else { approval += 30; score += 200; feedbackTexto.innerText = "✅ Decreto Excelente! Ações estruturais precisas."; feedbackTexto.style.color = "#4cd137"; feedbackStatus.innerText = `Palavras-chave detectadas: ${palavrasEncontradas.join(', ')}.`; }
+            if (acertos === 0) { feedbackTexto.innerText = "❌ Decreto Vazio! Sem vocabulário."; feedbackTexto.style.color = "#e84118"; feedbackStatus.innerText = "Nenhuma palavra-chave encontrada."; } 
+            else if (acertos === 1) { approval += 15; score += 50; feedbackTexto.innerText = "⚠️ Decreto Razoável."; feedbackTexto.style.color = "#fbc531"; feedbackStatus.innerText = `Mencionou: ${palavrasEncontradas[0]}.`; } 
+            else { approval += 30; score += 200; feedbackTexto.innerText = "✅ Decreto Excelente!"; feedbackTexto.style.color = "#4cd137"; feedbackStatus.innerText = `Termos: ${palavrasEncontradas.join(', ')}.`; }
 
             atualizarHUD(); document.getElementById('modal-crise').style.display = 'none'; document.getElementById('modal-feedback').style.display = 'flex';
         }
@@ -302,30 +280,26 @@
         function fecharModal(idModal) { document.getElementById(idModal).style.display = 'none'; carregarFase(); }
 
         function confirmarFimMandato() {
-            if(confirm("Atenção, Prefeito(a)! Tem certeza que deseja encerrar o seu mandato agora? Sua pontuação e seus relatórios serão enviados ao Tribunal de Contas (Professor).")) {
+            if(confirm("Atenção, Prefeito(a)! Tem certeza que deseja encerrar o seu mandato agora? Sua pontuação e seus relatórios serão enviados ao Professor.")) {
                 finalizarJogo();
             }
         }
 
         function finalizarJogo() {
-            document.getElementById('card-bank').innerHTML = ""; document.querySelector('.game-board').style.display = 'none'; document.getElementById('btn-check').style.display = 'none'; document.getElementById('btn-next').style.display = 'none';
-            
-            // Esconde o botão de encerrar mandato para não ficar feio na tela final
-            document.getElementById('btn-end').style.display = 'none';
-
-            let statusFinal = approval > 0 ? "Fim do Mandato - Sucesso!" : "Mandato Cassado";
+            document.getElementById('card-bank').innerHTML = ""; document.querySelector('.game-board').style.display = 'none'; document.getElementById('btn-check').style.display = 'none'; document.getElementById('btn-next').style.display = 'none'; document.getElementById('btn-end').style.display = 'none';
+            let statusFinal = approval > 0 ? "Fim do Mandato" : "Mandato Cassado";
             const msgDiv = document.getElementById('message');
             msgDiv.style.color = '#00a8ff';
-            msgDiv.innerHTML = `${statusFinal} <br> Prefeito(a): ${nomePrefeito} <br> Pontuação Final: ${score} <br> Mandatos Cumpridos: ${mandatoAtual} <br><br><span style="color: #4cd137; font-size: 18px;">Enviando relatório... ⏳</span>`;
+            msgDiv.innerHTML = `${statusFinal} <br> Prefeito(a): ${nomePrefeito} <br> Pontuação Final: ${score} <br><br><span style="color: #4cd137; font-size: 18px;">Enviando relatório... ⏳</span>`;
 
             let dadosParaPlanilha = { nome: nomePrefeito, pontuacao: score, mandatos: mandatoAtual, aprovacao: approval, respostas: historicoDecretos };
             
-            // PASSO 1: Envia as Notas
+            // Passo 1: Envia as Notas (POST)
             fetch(urlDoGoogleScript, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dadosParaPlanilha) })
             .then(() => { 
                 msgDiv.innerHTML += `<br><span style="color: #fbc531; font-size: 18px;">✅ Relatório entregue! Calculando o Ranking do Top 10...</span>`; 
                 
-                // PASSO 2: Puxa o Ranking após dar tempo de salvar
+                // Passo 2: Puxa o Ranking (GET com ?action=ranking) após dar um tempinho pro Google salvar
                 setTimeout(() => {
                     fetch(urlDoGoogleScript + "?action=ranking")
                     .then(res => res.json())
@@ -350,9 +324,22 @@
             html += "</table>";
             container.innerHTML = html;
             container.style.display = 'block';
-            document.getElementById('message').style.display = 'none'; // Limpa a mensagem de envio
+            document.getElementById('message').style.display = 'none'; // Esconde a mensagem de envio para limpar a tela
             document.getElementById('btn-restart').style.display = 'inline-block';
         }
+
+        // --- SISTEMA ANTI-COLA (Bloqueia Ctrl+V e Arrastar Texto) ---
+        const textareaCrise = document.getElementById('resposta-crise');
+        
+        textareaCrise.addEventListener('paste', function(e) {
+            e.preventDefault();
+            alert("🚨 Sistema Anti-IA ativado! Prefeito(a), para garantir a autenticidade da sua gestão, você precisa digitar o seu decreto manualmente.");
+        });
+
+        textareaCrise.addEventListener('drop', function(e) {
+            e.preventDefault();
+        });
+
     </script>
 </body>
 </html>
